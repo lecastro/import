@@ -1,0 +1,78 @@
+version: '3.7'
+
+services:
+  nginx-gunts:
+    restart: always
+    hostname: nginx-gunts
+    image: tradeupgroup01/nginx:gunts-1.13.3
+    volumes:
+      - gunts-content:/var/www/html
+    ports:
+      - 80:80
+      - 443:443
+    links:
+      - gunts
+    networks:
+      - app_default
+
+  gunts:
+    restart: always
+    hostname: gunts
+    image: tradeupgroup01/gunts:production
+    volumes:
+      - gunts-content:/var/www/html/
+    ports:
+      - 9000:9000
+    environment:
+      - COMPOSER_MEMORY_LIMIT=-1
+    networks:
+      - app_default
+
+  kibana:
+    restart: always
+    hostname: kibana
+    image: docker.elastic.co/kibana/kibana:7.0.0
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "5601:5601"
+    links:
+      - elasticsearch
+    networks:
+      - app_default
+
+  elasticsearch:
+    restart: always
+    hostname: elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.0.0
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - esdata1:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+      - 9300:9300
+    links:
+      - gunts
+    networks:
+      - app_default
+
+volumes:
+  gunts-content:
+  esdata1:
+    driver: local
+
+networks:
+  app_default:
+    driver: bridge
+    name: app_default

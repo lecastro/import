@@ -1,0 +1,101 @@
+version: '3.7'
+services:
+  nginx:
+    restart: always
+    hostname: nginx
+    image: web-app
+    build:
+      context: .
+      dockerfile: ./Docker/Dockerfile
+    volumes:
+      - ${APPLICATION}:/var/www/html
+      - ${NGINX_HOST_LOG_PATH}:/var/log/nginx
+    ports:
+      - ${NGINX_HOST_HTTP_PORT}:80
+      - ${NGINX_HOST_HTTPS_PORT}:443
+    links:
+      - app
+    networks:
+      - app_default
+
+  app:
+    restart: always
+    hostname: app
+    image: app
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_DEBUG: ${APP_DEBUG}
+    ports:
+      - ${FPM_PORT}:9000
+    volumes:
+      - ${APPLICATION}:/var/www/html
+    environment:
+      - COMPOSER_MEMORY_LIMIT=-1
+    links:
+      - mysql
+      - rabbitmq
+    depends_on:
+      - rabbitmq
+    networks:
+      - app_default
+
+  mysql:
+    restart: always
+    hostname: mysql
+    image: mysql:8.0.19
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      - ${DB_PORT}:3306
+    volumes:
+      - database:/var/lib/mysql
+    environment:
+      - MYSQL_DATABASE=${DB_DATABASE}
+      - MYSQL_USER=${DB_USERNAME}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+    networks:
+      app_default:
+        aliases:
+          - mysql
+
+  rabbitmq:
+    hostname: rabbitmq
+    image: rabbitmq:3-management-alpine
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
+    volumes:
+      - rmqdataapp/:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - app_default
+
+  redis:
+    image: redis:alpine3.15
+    ports:
+      - "6379:6379"
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - cache:/data
+    depends_on:
+      - app
+    links:
+      - app
+    networks:
+      - app_default
+
+volumes:
+  database:
+  rmqdataapp:
+  cache:
+  esdata:
+    driver: local
+
+networks:
+  app_default:
+    driver: bridge
+    name: ${NETWORK_NAME}

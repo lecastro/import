@@ -1,0 +1,21 @@
+FROM nginx:1.13.3
+
+COPY ./Docker/conf/nginx/sites/default.conf /etc/nginx/conf.d/
+COPY ./Docker/conf/nginx/nginx.conf /etc/nginx/
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+    curl \
+    libssl-dev \
+    openssl \
+    nano \
+    gnupg \
+    cron \
+    bash \
+    iputils-ping \
+    libzip-dev \
+    unzip \
+    mcedit
+
+ENV TZ=America/Sao_Paulo
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone

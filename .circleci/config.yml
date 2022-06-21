@@ -1,0 +1,240 @@
+version: 2.1
+
+orbs:
+  ms-teams: cloudradar-monitoring/ms-teams@0.0.1
+  codecov: codecov/codecov@3.0.0
+
+parameters:
+  image-tag:
+    type: string
+    default: git rev-parse HEAD
+
+defaults: &defaults
+  docker:
+    - image: cimg/base:stable
+
+defaults_php: &defaults_php
+  parallelism: 2
+  docker:
+    - image: cimg/php:8.1.2
+    - image: circleci/mysql:8.0.19
+      command: mysqld --default-authentication-plugin=mysql_native_password
+      environment:
+        MYSQL_USER: trade
+        MYSQL_DATABASE: tim_gunts_testing
+        MYSQL_ROOT_PASSWORD: 123
+        MYSQL_PASSWORD: 123
+
+defaults_docker: &defaults_docker
+  machine:
+    image: ubuntu-2004:202104-01
+
+commands:
+  environments_project:
+    steps:
+      - run:
+          name: Set variables of context
+          command: |
+            echo "
+            APP_NAME=Gunts
+            APP_ENV=$APP_ENV
+            APP_KEY=
+            APP_DEBUG=$APP_DEBUG
+            APP_URL=$APP_URL
+            APP_TIMEZONE=America/Sao_Paulo
+
+            DB_CONNECTION=mysql
+            DB_PORT=3306
+            DB_HOST=$DB_HOST
+            DB_DATABASE=$DB_DATABASE
+            DB_USERNAME=$DB_USERNAME
+            DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD
+            DB_PASSWORD=$DB_PASSWORD
+
+            LOG_CHANNEL=stack
+            LOG_SLACK_WEBHOOK_URL=$LOG_SLACK_WEBHOOK_URL
+
+            MAIL_DRIVER=$MAIL_DRIVER
+            MAIL_HOST=$MAIL_HOST
+            MAIL_PORT=$MAIL_PORT
+            MAIL_USERNAME=$MAIL_USERNAME
+            MAIL_PASSWORD=$MAIL_PASSWORD
+            MAIL_ENCRYPTION=$MAIL_ENCRYPTION
+            MAIL_FROM_ADDRESS=$MAIL_FROM_ADDRESS
+            MAIL_FROM_NAME=$MAIL_FROM_NAME
+            QUEUE_CONNECTION=rabbitmq
+
+            APPLICATION=./
+            NGINX_HOST_HTTP_PORT=80
+            NGINX_HOST_HTTPS_PORT=443
+            NGINX_HOST_LOG_PATH=./Docker/logs/
+            NGINX_SITES_PATH=./docker/build/nginx/sites/
+            FPM_PORT=9000
+            NETWORK_NAME=app_default
+
+            GU_TIM_URI_AUTH=$GU_TIM_URI_AUTH
+            GU_TIM_URI=$GU_TIM_URI
+            TIM_SMART_URI=$TIM_SMART_URI
+
+            ELASTIC_HOST=elasticsearch
+            ELASTIC_PORT=9200
+            ELASTIC_LOGS_INDEX=gunts-elasticsearch
+
+            BUGSNAG_API_KEY=$BUGSNAG_API_KEY
+
+            NEW_RELIC_LICENSE_KEY=$NEW_RELIC_LICENSE_KEY
+            NEW_RELIC_APP_NAME=$NEW_RELIC_APP_NAME
+            " > .env
+
+jobs:
+  build:
+    <<: *defaults_php
+    parallelism: 2
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "composer.json" }}
+            - v1-dependencies-
+      - run: composer install -n --prefer-dist
+      - save_cache:
+          key: v1-dependencies-{{ checksum "composer.json" }}
+          paths:
+            - ./vendor
+
+  testing:
+    <<: *defaults_php
+    parallelism: 2
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "composer.json" }}
+            - v1-dependencies-
+      - run:
+          name: Waiting for MySQL to be ready
+          command: |
+            for i in `seq 1 10`;
+            do
+              nc -z 127.0.0.1 3306 && echo Success && exit 0
+              echo -n .
+              sleep 1
+            done
+            echo Failed waiting for MySQL && exit 1
+      - environments_project
+      - run:
+          name: Composer update
+          command: |
+            cp .env .env.testing
+            composer update
+      - run:
+          name: Key generate
+          command: php artisan key:generate
+      - run:
+          name: Migrate
+          command: php artisan migrate --seed
+      - run:
+          command: ./vendor/bin/phpunit --coverage-html tests/coverage
+          environment:
+            XDEBUG_MODE: coverage
+      - store_test_results:
+          path: tests/coverage
+      - store_artifacts:
+          path: tests/coverage
+
+  docker-stage:
+    <<: *defaults_docker
+    steps:
+      - checkout
+      - environments_project
+      - run:
+          name: Build image docker
+          command: |
+            docker build . --tag tradeupgroup01/gunts:$(<< pipeline.parameters.image-tag >>)
+            docker tag tradeupgroup01/gunts:$(<< pipeline.parameters.image-tag >>) tradeupgroup01/gunts:developers
+      - run:
+          name: Push image docker
+          command: |
+            docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
+            docker push tradeupgroup01/gunts:$(<< pipeline.parameters.image-tag >>)
+            docker push tradeupgroup01/gunts:developers
+
+  docker-production:
+    <<: *defaults_docker
+    steps:
+      - checkout
+      - environments_project
+      - run:
+          name: Build image docker
+          command: |
+            docker build . --tag tradeupgroup01/gunts:production-$(<< pipeline.parameters.image-tag >>)
+            docker tag tradeupgroup01/gunts:production-$(<< pipeline.parameters.image-tag >>) tradeupgroup01/gunts:production
+      - run:
+          name: Push image docker
+          command: |
+            docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD
+            docker push tradeupgroup01/gunts:production-$(<< pipeline.parameters.image-tag >>)
+            docker push tradeupgroup01/gunts:production
+
+  server-stage:
+    <<: *defaults
+    steps:
+      - run:
+          name: Run Buddy
+          command: curl https://app.buddy.works/tu-siv/tim-gunts/pipelines/pipeline/357534/trigger-webhook?token=1fd1929c11d5408fc32396c64e0b6b0bbc7790e87b30dd48c5d84ce23b2b08e05c1cd8afe9814e5aedd76015ee2810f2
+
+  server-production:
+    <<: *defaults
+    steps:
+      - run:
+          name: Run Buddy
+          command: curl https://app.buddy.works/tu-siv/tim-gunts/pipelines/pipeline/376200/trigger-webhook?token=1fd1929c11d5408fc32396c64e0b6b0beb0742866e33bc702a5011c283919eda8bd244e3f90951cf4645571decb0b8b5
+
+  notify-stage:
+    <<: *defaults
+    steps:
+      - ms-teams/report:
+          webhook_url: https://tradeup.webhook.office.com/webhookb2/e9149f82-9eae-498b-b170-95a7a38400db@e580d8bd-f053-424d-9db5-609de5bd0b49/IncomingWebhook/3ee3116b18964021b4e282163aea7385/dee0b533-ca68-4ec9-82dc-e96c28150956
+          only_on_fail: false
+
+  notify-production:
+    <<: *defaults
+    steps:
+      - ms-teams/report:
+          webhook_url: https://tradeup.webhook.office.com/webhookb2/e9149f82-9eae-498b-b170-95a7a38400db@e580d8bd-f053-424d-9db5-609de5bd0b49/IncomingWebhook/88e68d9bce6b48898e5157e5740af3a7/dee0b533-ca68-4ec9-82dc-e96c28150956
+          only_on_fail: false
+
+workflows:
+  version: 2
+  workflow:
+    jobs:
+      - build
+      - hold-stage:
+          type: approval
+      - docker-stage:
+          context:
+            - GUNTS_STAGING
+          requires:
+            - hold-stage
+      - server-stage:
+          requires:
+            - docker-stage
+      - notify-stage:
+          requires:
+            - server-stage
+      - hold-production:
+          type: approval
+          filters:
+            branches:
+              only: main
+      - docker-production:
+          context:
+            - GUNTS_PRODUCTION
+          requires:
+            - hold-production
+      - server-production:
+          requires:
+            - docker-production
+      - notify-production:
+          requires:
+            - server-production
