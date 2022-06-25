@@ -9,7 +9,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use App\Domain\Services\Contract\GeneratingDocumentContract;
 
-class GenerateDocumentAwsService implements GeneratingDocumentContract
+class GenerateDocumentAwsService extends BaseServices implements GeneratingDocumentContract
 {
     /** @var string */
     const ENV_BASE_PATH = 'DOCUMENT_BASE_PATH';

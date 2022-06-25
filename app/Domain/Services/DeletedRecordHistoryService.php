@@ -8,6 +8,6 @@ use app\Traits\DateHelper;
 use Illuminate\Database\Eloquent\Builder;
 use Modules\Schedule\Entities\DeletedRecordHistory;
 
-class DeletedRecordHistoryService
+class DeletedRecordHistoryService extends BaseServices
 {
 }

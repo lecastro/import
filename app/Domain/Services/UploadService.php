@@ -9,12 +9,13 @@ use Illuminate\Http\Request;
 use App\Models\UploadHistory;
 use Illuminate\Http\UploadedFile;
 use App\Jobs\ProcessUploadTeamsJobs;
+use App\Domain\Services\BaseServices;
 use App\Domain\Components\Queue\NameQueue;
 use App\Http\Requests\Uploads\UploadFileRequest;
 use App\Domain\Services\GenerateDocumentAwsService;
 use App\Domain\Repositories\Eloquent\UploadHistoryRepository;
 
-class UploadService
+class UploadService extends BaseServices
 {
     /** @var string */
     protected const MODULE = 'schedule';
