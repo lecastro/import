@@ -7,10 +7,10 @@ namespace App\Jobs;
 use Throwable;
 use App\Models\UploadHistory;
 use Illuminate\Support\Facades\Log;
-use App\Domain\Services\ImportService;
+use App\Domain\Services\ImportTeamService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
-class ProcessImportTeamsJobs extends ProcessBaseJobs implements ShouldQueue
+class ProcessUploadTeamsJobs extends ProcessBaseJobs implements ShouldQueue
 {
     protected UploadHistory $upload;
 
@@ -21,10 +21,9 @@ class ProcessImportTeamsJobs extends ProcessBaseJobs implements ShouldQueue
 
     public function handle(): void
     {
-        $importable = resolve(ImportService::class);
+        $importable = resolve(ImportTeamService::class);
 
         $importable->team(
-            $this->makeBodyRequest(),
             $this->upload
         );
 

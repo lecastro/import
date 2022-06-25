@@ -8,7 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\UploadHistory;
 use Illuminate\Http\UploadedFile;
-use App\Jobs\ProcessImportTeamsJobs;
+use App\Jobs\ProcessUploadTeamsJobs;
 use App\Domain\Components\Queue\NameQueue;
 use App\Http\Requests\Uploads\UploadFileRequest;
 use App\Domain\Services\GenerateDocumentAwsService;
@@ -53,7 +53,7 @@ class UploadService
 
         $payload = $this->uploadHistoryRepository->create($upload);
 
-        ProcessImportTeamsJobs::dispatch(
+        ProcessUploadTeamsJobs::dispatch(
             $payload
         )
             //->onConnection('database')
