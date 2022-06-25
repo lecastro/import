@@ -7,10 +7,10 @@ namespace app\Traits;
 use Event;
 use Illuminate\Support\Collection;
 use App\Domain\Components\Redis\Cache;
-use Modules\Schedule\Events\InjectAllCnpjInCacheEvent;
-use Modules\Schedule\Events\InjectAllUserIdsInCacheEvent;
-use Modules\Schedule\Events\InjectAllBusinesslinesInCacheEvent;
-use Modules\Schedule\Events\InjectAllPeopleWithViewsIdsInCacheEvent;
+use App\Events\InjectAllCnpjInCacheEvent;
+use App\Events\InjectAllUserIdsInCacheEvent;
+use App\Events\InjectAllBusinesslinesInCacheEvent;
+use App\Events\InjectAllPeopleWithViewsIdsInCacheEvent;
 
 trait CacheRedis
 {
