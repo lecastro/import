@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\Domain\Services;
+namespace App\Domain\Services;
 
 use Illuminate\Support\LazyCollection;
 

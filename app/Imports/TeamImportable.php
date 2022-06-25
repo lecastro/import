@@ -4,34 +4,41 @@ declare(strict_types=1);
 
 namespace App\Imports;
 
+use App\Models\Team;
 use Illuminate\Support\Collection;
-use Maatwebsite\Excel\Concerns\ToCollection;
-use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Maatwebsite\Excel\Concerns\WithChunkReading;
-use Maatwebsite\Excel\Concerns\WithCustomCsvSettings;
+use App\Domain\Services\TeamService;
+use App\Domain\Components\Rules\Cnpj;
+use App\Domain\Components\Facades\LoggerFacade;
 
-class TeamImportable extends BaseImportable implements
-    ToCollection,
-    WithHeadingRow,
-    WithCustomCsvSettings,
-    WithChunkReading
+class TeamImportable extends BaseImportable
 {
-    /** @var int */
-    protected static $TOTAL_SIZE = 1000;
+    /** @var TeamService */
+    protected $teamService;
 
-    public function collection(Collection $collection)
+    public function __construct(TeamService $teamService)
     {
-        //
+        $this->teamService = $teamService;
     }
 
-    public function chunkSize(): int
+    public function importProcess(array $team): void
     {
-        return self::$TOTAL_SIZE;
-    }
+        LoggerFacade::info(
+            Team::GROUP_LOGGER,
+            'Iniciando Importação Carteira.',
+            ['Carteira' => $team]
+        );
 
-    public function batchSize(): int
-    {
-        return self::$TOTAL_SIZE;
+        $validatedRows = $this->validateRow($team);
+
+        try {
+        } catch (Throwable $th) {
+            LoggerFacade::warning(
+                Team::GROUP_LOGGER,
+                'Erro ao processar importação.',
+                ['error' => $th->getMessage()]
+            );
+            throw $th;
+        }
     }
 
     /** @return array[] */

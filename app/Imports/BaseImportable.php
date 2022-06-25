@@ -4,26 +4,25 @@ declare(strict_types=1);
 
 namespace App\Imports;
 
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Str;
+use App\Domain\Components\Facades\LoggerFacade;
 
 abstract class BaseImportable
 {
-    /** @param array[] */
-    protected $validationErrors = [];
+    /** @return string[] */
+    abstract public function rules(): array;
 
-    /** @param array[] */
-    protected $validatedRows = [];
-
+    /** @return string[] */
+    abstract public function messages(): array;
     /**
      * @return array[]
      * @throws ValidationException
      */
-    protected function validateRows(array $rows): array
+    protected function validateRow(array $rows): array
     {
-        $validatedRows = [];
+        $validatedRows  = [];
 
         foreach ($rows as $key => $row) {
             try {
@@ -34,9 +33,13 @@ abstract class BaseImportable
                         $this->messages()
                     )->validate();
             } catch (ValidationException $e) {
-                $this->sendValidationErrors(
-                    $e->errors(),
-                    $key + 2
+                LoggerFacade::info(
+                    Team::GROUP_LOGGER,
+                    'Erro De Validação.',
+                    [
+                        'Erro'  => $e->errors(),
+                        'linha' => $key + 2
+                    ]
                 );
             }
         }
@@ -92,33 +95,4 @@ abstract class BaseImportable
     {
         return mb_strtoupper(Str::slug($arg, '_'));
     }
-
-    public function startTransaction(string $database): void
-    {
-        DB::connection($database)->beginTransaction();
-    }
-
-    public function commitTransaction(string $database): void
-    {
-        DB::connection($database)->commit();
-    }
-
-    public function rollbackTransaction(string $database): void
-    {
-        DB::connection($database)->rollback();
-    }
-
-    /** @return string[] */
-    public function getCsvSettings(): array
-    {
-        return [
-            'delimiter' => ';'
-        ];
-    }
-
-    /** @return string[] */
-    abstract public function rules(): array;
-
-    /** @return string[] */
-    abstract public function messages(): array;
 }

@@ -38,7 +38,7 @@ class ImportTeamService extends BaseServices
                 return $this->processFormatLinesFile($team);
             })
             ->each(function (array $team): void {
-                dd($team);
+                $this->teamImportable->importProcess($team);
             });
 
         $this->dispatchDeletionOfTeams();
@@ -71,7 +71,6 @@ class ImportTeamService extends BaseServices
             $this->teamImportable,
             $this->deletedRecordHistoryService
         )
-            //->onConnection('database')
             ->onQueue(
                 NameQueue::PROCESS_DELETE_TEAMS_THAT_WHERE_NOT_CREATED_MANUALLY
             );
