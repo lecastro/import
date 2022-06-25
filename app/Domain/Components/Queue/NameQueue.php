@@ -24,4 +24,7 @@ class NameQueue
     /** @var string */
     public const PROCESS_DELETE_TEAMS_THAT_WHERE_NOT_CREATED_MANUALLY
     = 'PROCESS_DELETE_TEAMS';
+
+    /** @var string */
+    public const PROCESS_IMPORT_FILE_IN_CHUNCK = 'PROCESS_IMPORT_FILE_IN_CHUNCK';
 }
