@@ -27,17 +27,17 @@ class BaseRepository implements BaseRepositoryContract
     /** @param array $attributes*/
     public function create(array $attributes): Model
     {
-        return $this->model->create($attributes);
+        return $this->model->newQuery()->create($attributes);
     }
 
     /**
-    * @param $id
-    *
-    * @return Model
-    */
+     * @param $id
+     *
+     * @return Model
+     */
     public function find($id): ?Model
     {
-        return $this->model->find($id);
+        return $this->model->newQuery()->find($id);
     }
 
     /**
@@ -46,7 +46,7 @@ class BaseRepository implements BaseRepositoryContract
      * */
     public function firstOrCreate(array $attributes, array $values): Model
     {
-        return $this->model->firstOrCreate(attributes: $attributes, values: $values);
+        return $this->model->newQuery()->firstOrCreate(attributes: $attributes, values: $values);
     }
 
     /**
@@ -55,6 +55,14 @@ class BaseRepository implements BaseRepositoryContract
      * */
     public function updateOrCreate(array $attributes, array $values): Model
     {
-        return $this->model->updateOrCreate(attributes: $attributes, values: $values);
+        return $this->model->newQuery()->updateOrCreate(attributes: $attributes, values: $values);
+    }
+
+    /**
+     * @param mixed[] $attributes
+     * */
+    public function createInBulk(array $attributes): void
+    {
+        $this->model->newQuery()->insert($attributes);
     }
 }

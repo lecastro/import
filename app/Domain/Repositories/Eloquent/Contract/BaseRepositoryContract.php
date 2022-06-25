@@ -7,9 +7,9 @@ namespace App\Domain\Repositories\Eloquent\Contract;
 use Illuminate\Database\Eloquent\Model;
 
 /**
-* Interface EloquentRepositoryContract
-* @package App\Repositories
-*/
+ * Interface EloquentRepositoryContract
+ * @package App\Repositories
+ */
 interface BaseRepositoryContract
 {
     /**
@@ -37,4 +37,9 @@ interface BaseRepositoryContract
      * @return Model
      */
     public function updateOrCreate(array $attributes, array $values): Model;
+
+    /**
+     * @param $values
+     */
+    public function createInBulk(array $attributes): void;
 }
