@@ -30,8 +30,10 @@ class UploadService extends BaseServices
 
     protected UploadHistoryRepository $uploadHistoryRepository;
 
-    public function __construct(GenerateDocumentAwsService $generateDocument, UploadHistoryRepository $uploadHistoryRepository)
-    {
+    public function __construct(
+        GenerateDocumentAwsService $generateDocument,
+        UploadHistoryRepository $uploadHistoryRepository
+    ) {
         $this->generateDocument         = $generateDocument;
         $this->uploadHistoryRepository  = $uploadHistoryRepository;
     }
@@ -57,7 +59,6 @@ class UploadService extends BaseServices
         ProcessUploadTeamsJobs::dispatch(
             $payload
         )
-            //->onConnection('database')
             ->onQueue(
                 NameQueue::PROCESS_IMPORT_TEAMS
             );

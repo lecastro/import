@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use Throwable;
+use App\Models\Team;
 use App\Models\UploadHistory;
-use Illuminate\Support\Facades\Log;
 use App\Domain\Services\ImportTeamService;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use App\Domain\Components\Facades\LoggerFacade;
 
 class ProcessUploadTeamsJobs extends ProcessBaseJobs implements ShouldQueue
 {
@@ -35,9 +36,14 @@ class ProcessUploadTeamsJobs extends ProcessBaseJobs implements ShouldQueue
     public function failed(Throwable $exception): void
     {
         $this->processFail();
-        Log::error(
+
+        LoggerFacade::error(
+            Team::GROUP_LOGGER,
             'Falha ao processar Jobs de importação Teams (Clientes).',
-            ['error' => $exception->getMessage()]
+            [
+                'message'   => $exception->getMessage(),
+                'exception' => $exception
+            ]
         );
     }
 }

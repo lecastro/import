@@ -1,35 +1,52 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
+use Throwable;
+use App\Models\Team;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
+use App\Imports\TeamImportable;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
+use App\Domain\Components\Facades\LoggerFacade;
 
 class ProcessImportFileInChunkForQueueJobs implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
 
-    /**
-     * Create a new job instance.
-     *
-     * @return void
-     */
-    public function __construct()
+    protected array $team;
+
+    protected TeamImportable $teamImportable;
+
+    public function __construct(array $team, TeamImportable $teamImportable)
     {
-        //
+        $this->team             = $team;
+        $this->teamImportable   = $teamImportable;
     }
 
-    /**
-     * Execute the job.
-     *
-     * @return void
-     */
-    public function handle()
+    public function handle(): void
     {
-        //
+        $this->teamImportable->importProcessInRow(
+            $this->team
+        );
+    }
+
+    public function failed(Throwable $exception): void
+    {
+        LoggerFacade::error(
+            Team::GROUP_LOGGER,
+            'Falha ao processar Jobs de importação Teams em linha',
+            [
+                'message'   => $exception->getMessage(),
+                'exception' => $exception
+            ]
+        );
     }
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\Traits;
+namespace App\Traits;
 
 use Event;
 use Illuminate\Support\Collection;

@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace App\Domain\Services;
 
+use App\Models\Team;
 use App\Models\UploadHistory;
 use App\Imports\TeamImportable;
 use App\Domain\Services\BaseServices;
 use Illuminate\Support\LazyCollection;
 use App\Domain\Components\Queue\NameQueue;
-use App\Domain\Components\Helpers\DateHelper;
-use App\Domain\Components\Helpers\StringHelper;
+use App\Domain\Components\Facades\LoggerFacade;
+use App\Domain\Components\Output\TeamFileOutPut;
+use App\Jobs\ProcessImportFileInChunkForQueueJobs;
 use App\Domain\Services\DeletedRecordHistoryService;
 
 class ImportTeamService extends BaseServices
@@ -38,31 +40,27 @@ class ImportTeamService extends BaseServices
                 return $this->processFormatLinesFile($team);
             })
             ->each(function (array $team): void {
-                $this->teamImportable->importProcess($team);
+                if (!empty($team)) {
+                    $this->dispatchProcessImportFileInChunk(
+                        $team
+                    );
+                    LoggerFacade::info(
+                        Team::GROUP_LOGGER,
+                        'Processando arquivo de  importação',
+                        [
+                            'carteira' => $team
+                        ]
+                    );
+                }
             });
 
-        $this->dispatchDeletionOfTeams();
+        //$this->dispatchDeletionOfTeams();
     }
 
     /** @return array[] */
     private function processFormatLinesFile(LazyCollection $lines): array
     {
-        $data = [];
-
-        foreach ($lines as $line) {
-            $line = StringHelper::explode(';', $line[0]);
-            $data[] = [
-                'cnpj'                          => $line[0] ?? '',
-                'matricula'                     => $line[1] ?? '',
-                'linha'                         => $line[2] ?? '',
-                'matricula_gerente_de_vendas'   => $line[3] ?? '',
-                'matricula_gerente_de_regional' => $line[4] ?? '',
-                'created_at'                    => DateHelper::dateNow(),
-                'updated_at'                    => DateHelper::dateNow()
-            ];
-        }
-
-        return $data;
+        return (new TeamFileOutPut($lines))->processFileInRows();
     }
 
     public function dispatchDeletionOfTeams(): void
@@ -76,7 +74,7 @@ class ImportTeamService extends BaseServices
             );
     }
 
-    public function dispatchProcessImportFileInChunk($team): void
+    public function dispatchProcessImportFileInChunk(array $team): void
     {
         ProcessImportFileInChunkForQueueJobs::dispatch(
             $team,

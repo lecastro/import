@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Imports;
 
+use App\Traits\CacheRedis;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -11,6 +12,8 @@ use App\Domain\Components\Facades\LoggerFacade;
 
 abstract class BaseImportable
 {
+    use CacheRedis;
+
     /** @return string[] */
     abstract public function rules(): array;
 
@@ -34,8 +37,8 @@ abstract class BaseImportable
                     )->validate();
             } catch (ValidationException $e) {
                 LoggerFacade::info(
-                    Team::GROUP_LOGGER,
-                    'Erro De Validação.',
+                    'Erro De Validação',
+                    'erro.',
                     [
                         'Erro'  => $e->errors(),
                         'linha' => $key + 2

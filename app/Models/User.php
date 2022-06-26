@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class User extends Model
 {
-    /** @var string */
+    /** @var int */
     public const TIME_CACHE = 86400;
 
     /** @var string */

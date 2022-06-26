@@ -16,8 +16,8 @@ class TeamService extends BaseServices
     }
 
     /** @param string[] */
-    public function createMany(array $teams): void
+    public function createInBulk(array $teams): void
     {
-        $this->teamRepository->insert($teams);
+        $this->teamRepository->createInBulk($teams);
     }
 }

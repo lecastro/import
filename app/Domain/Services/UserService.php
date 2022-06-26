@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\Services;
 
-use Modules\Core\Entities\User;
+use App\Models\User;
+use App\Domain\Services\BaseServices;
 use App\Domain\Components\Redis\Cache;
 use App\Domain\Repositories\Eloquent\UserRepository;
-use App\Domain\Services\BaseServices;
 
 class UserService extends BaseServices
 {
@@ -33,7 +33,7 @@ class UserService extends BaseServices
 
             $data[(string) $user->registration] = $user->person->id;
         }
-        dd($data);
+
         Cache::put(
             User::KEY_CACHE,
             collect($data),
