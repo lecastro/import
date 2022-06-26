@@ -12,4 +12,14 @@ class DateHelper
     {
         return Carbon::now();
     }
+
+    public static function formatDate(Carbon $date): string
+    {
+        return Carbon::parse($date)->format('Y-m-d');
+    }
+
+    public static function formatDateTime(Carbon $dateTime): string
+    {
+        return Carbon::parse($dateTime)->format('Y-m-d H:i:s');
+    }
 }
