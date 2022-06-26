@@ -1,6 +1,8 @@
 <?php
 
-namespace Modules\Schedule\Rules;
+declare(strict_types=1);
+
+namespace App\Domain\Components\Rules;
 
 use Illuminate\Contracts\Validation\Rule;
 use App\Domain\Components\Helpers\ValidatorHelper;
