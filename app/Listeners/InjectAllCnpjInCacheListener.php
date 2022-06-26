@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
+use App\Domain\Services\PlaceService;
+
 class InjectAllCnpjInCacheListener
 {
-    /** @var PlaceService */
-    protected $placeService;
+    protected PlaceService $placeService;
 
     public function __construct(PlaceService $placeService)
     {

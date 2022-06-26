@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Repositories\Eloquent;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use App\Domain\Repositories\Eloquent\Contract\BaseRepositoryContract;
 
 class BaseRepository implements BaseRepositoryContract
@@ -64,5 +65,10 @@ class BaseRepository implements BaseRepositoryContract
     public function createInBulk(array $attributes): void
     {
         $this->model->newQuery()->insert($attributes);
+    }
+
+    public function get(): EloquentCollection
+    {
+        return $this->model->newQuery()->get();
     }
 }

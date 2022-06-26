@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\Domain\Components\Redis;
+namespace App\Domain\Components\Redis;
 
 use Illuminate\Support\Facades\Cache as BaseCache;
 use Illuminate\Support\Facades\Log;

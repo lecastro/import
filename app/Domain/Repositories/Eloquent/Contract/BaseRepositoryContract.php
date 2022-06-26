@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Repositories\Eloquent\Contract;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 /**
  * Interface EloquentRepositoryContract
@@ -38,8 +39,8 @@ interface BaseRepositoryContract
      */
     public function updateOrCreate(array $attributes, array $values): Model;
 
-    /**
-     * @param $values
-     */
+    /** @param $values */
     public function createInBulk(array $attributes): void;
+
+    public function get(): EloquentCollection;
 }

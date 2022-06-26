@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
+use App\Domain\Services\UserService;
+
 class InjectAllUserIdsInCacheListener
 {
     /** @var UserService */

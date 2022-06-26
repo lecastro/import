@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
+use App\Domain\Services\BusinessLineService;
+
 class InjectAllBusinesslinesInCacheListener
 {
-    /** @var BusinessLineService */
-    protected $businessLineService;
+    protected BusinessLineService $businessLineService;
 
     public function __construct(BusinessLineService $businessLineService)
     {

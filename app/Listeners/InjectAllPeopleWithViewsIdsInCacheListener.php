@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
+use App\Domain\Services\ViewService;
+
 class InjectAllPeopleWithViewsIdsInCacheListener
 {
-    /** @var ViewService */
-    protected $viewService;
+    protected ViewService $viewService;
 
     public function __construct(ViewService $viewService)
     {
