@@ -9,9 +9,10 @@ use App\Models\UploadHistory;
 use App\Imports\TeamImportable;
 use App\Domain\Services\BaseServices;
 use Illuminate\Support\LazyCollection;
+use App\Jobs\ProcessDeleteAllTeamsJobs;
 use App\Domain\Components\Queue\NameQueue;
+use App\Domain\Components\Adapters\TeamAdapter;
 use App\Domain\Components\Facades\LoggerFacade;
-use App\Domain\Components\Output\TeamFileOutPut;
 use App\Jobs\ProcessImportFileInChunkForQueueJobs;
 use App\Domain\Services\DeletedRecordHistoryService;
 
@@ -36,31 +37,53 @@ class ImportTeamService extends BaseServices
         $this->lazyCollectionReadFile($path)
             ->skip(self::SKIP_FILE)
             ->chunk(self::CHUCK_SIZE)
-            ->map(function (LazyCollection $team): array {
-                return $this->processFormatLinesFile($team);
+            ->map(function (LazyCollection $team) use ($uploadHistory): array {
+                return $this->processLinesFile($team, $uploadHistory);
             })
             ->each(function (array $team): void {
                 if (!empty($team)) {
-                    $this->dispatchProcessImportFileInChunk(
-                        $team
-                    );
-                    LoggerFacade::info(
-                        Team::GROUP_LOGGER,
-                        'Processando arquivo de  importação',
-                        [
-                            'carteira' => $team
-                        ]
-                    );
+                    $this->dispatchProcessImportFileInChunk($team);
                 }
             });
 
         //$this->dispatchDeletionOfTeams();
+
+        LoggerFacade::info(
+            Team::GROUP_LOGGER,
+            'finalizando processo de importacao em linha',
+            []
+        );
     }
 
     /** @return array[] */
-    private function processFormatLinesFile(LazyCollection $lines): array
+    private function processLinesFile(LazyCollection $lines, $uploadHistory): array
     {
-        return (new TeamFileOutPut($lines))->processFileInRows();
+        $data = [];
+
+        foreach ($lines as $line) {
+            $data[] = (new TeamAdapter($line, $uploadHistory))->team();
+        }
+
+        return $data;
+    }
+
+    /** @param array[] */
+    private function dispatchProcessImportFileInChunk(array $team): void
+    {
+        ProcessImportFileInChunkForQueueJobs::dispatch(
+            $team,
+            $this->teamImportable
+        )->onQueue(
+            NameQueue::PROCESS_IMPORT_FILE_IN_CHUNCK
+        );
+
+        LoggerFacade::info(
+            Team::GROUP_LOGGER,
+            'inicializando processo de importacao em linha',
+            [
+                'despachando carteira fila' => $team
+            ]
+        );
     }
 
     public function dispatchDeletionOfTeams(): void
@@ -72,15 +95,5 @@ class ImportTeamService extends BaseServices
             ->onQueue(
                 NameQueue::PROCESS_DELETE_TEAMS_THAT_WHERE_NOT_CREATED_MANUALLY
             );
-    }
-
-    public function dispatchProcessImportFileInChunk(array $team): void
-    {
-        ProcessImportFileInChunkForQueueJobs::dispatch(
-            $team,
-            $this->teamImportable
-        )->onQueue(
-            NameQueue::PROCESS_IMPORT_FILE_IN_CHUNCK
-        );
     }
 }

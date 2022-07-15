@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Imports;
 
+use App\Models\Team;
 use App\Traits\CacheRedis;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use App\Domain\Components\Facades\LoggerFacade;
+use App\Domain\Components\Facades\CacheExportableFacade;
 
 abstract class BaseImportable
 {
@@ -19,13 +20,15 @@ abstract class BaseImportable
 
     /** @return string[] */
     abstract public function messages(): array;
+
     /**
      * @return array[]
      * @throws ValidationException
      */
     protected function validateRow(array $rows): array
     {
-        $validatedRows  = [];
+        $validatedRows = [];
+        $errors        = null;
 
         foreach ($rows as $key => $row) {
             try {
@@ -37,65 +40,60 @@ abstract class BaseImportable
                     )->validate();
             } catch (ValidationException $e) {
                 LoggerFacade::info(
-                    'Erro De Validação',
-                    'erro.',
+                    Team::GROUP_LOGGER,
+                    'erro de validacao',
                     [
                         'Erro'  => $e->errors(),
                         'linha' => $key + 2
                     ]
                 );
+
+                $errors = $this->errors(
+                    $e->errors(),
+                    $key + 2
+                );
+
+                $this->generateCacheRowsErrors($errors);
+
+                continue;
             }
         }
 
         return $validatedRows;
     }
 
-    /** @param array[] */
-    protected function sendValidationErrors(array $errors, int $key): void
+    /** @param array[] $errors */
+    protected function generateCacheRowsErrors(array $errors): void
     {
-        $this->validationErrors[$key] = $errors;
+        if (CacheExportableFacade::check(Team::VALIDATION_ERRORS, $errors)) {
+            return;
+        }
+
+        CacheExportableFacade::push(
+            Team::VALIDATION_ERRORS,
+            $errors
+        );
     }
 
-    /** @return array[] */
-    public function getValidationErrors(): array
+    /** @param array[] $validatedRows */
+    protected function generateCacheRowsSuccessfully(array $validatedRows): void
     {
-        return $this->validationErrors;
+        if (CacheExportableFacade::check(Team::VALIDATION_SUCCESSFULLY, $validatedRows)) {
+            return;
+        }
+
+        CacheExportableFacade::push(
+            Team::VALIDATION_SUCCESSFULLY,
+            $validatedRows
+        );
     }
 
-    /** @param array[] | int */
-    protected function sendSuceessFulLines($validatedRows): void
+    /**
+     * @param array[] $errors
+     * @return array[]
+     */
+    protected function errors(array $errors, int $key): array
     {
-        $this->validatedRows[] = $validatedRows;
-    }
-
-    /** @return array[] */
-    public function getSuceessFulLines(): array
-    {
-        return $this->validatedRows;
-    }
-
-    protected function sanitizeCnpj(string $cnpj): string
-    {
-        return trim(preg_replace('/[^0-9]/', '', $cnpj));
-    }
-
-    protected function sanitizeRegistration(string $registration): string
-    {
-        return trim(str_replace('F', '', $registration));
-    }
-
-    protected function sanitizeSlug(string $slug): string
-    {
-        return mb_strtoupper(Str::slug($slug, '_'));
-    }
-
-    protected function sanitizeCpf(string $cpf): string
-    {
-        return trim(preg_replace('/[^0-9]/', '', $cpf));
-    }
-
-    protected function sanitizeArg(string $arg): string
-    {
-        return mb_strtoupper(Str::slug($arg, '_'));
+        return [$errors[$key] = $errors];
     }
 }

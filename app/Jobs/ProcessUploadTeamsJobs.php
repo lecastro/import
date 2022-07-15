@@ -24,25 +24,23 @@ class ProcessUploadTeamsJobs extends ProcessBaseJobs implements ShouldQueue
     {
         $importable = resolve(ImportTeamService::class);
 
-        $importable->team(
-            $this->upload
-        );
+        $importable->team($this->upload);
 
-        $this->process();
-
-        unlink($this->upload->path_temporary);
+        $this->destroyFileTemp();
     }
 
     public function failed(Throwable $exception): void
     {
         $this->processFail();
 
-        LoggerFacade::error(
+        $this->destroyFileTemp();
+
+        LoggerFacade::info(
             Team::GROUP_LOGGER,
-            'Falha ao processar Jobs de importação Teams (Clientes).',
+            'Falha ao processar Jobs de importacao Teams',
             [
-                'message'   => $exception->getMessage(),
-                'exception' => $exception
+                'mensagem'  => $exception->getMessage(),
+                'erro'      => $exception
             ]
         );
     }

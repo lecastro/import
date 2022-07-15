@@ -21,6 +21,12 @@ class Team extends Model
     /** @var string */
     public const GROUP_LOGGER = 'Importação Carteira';
 
+    /** @var string */
+    public const VALIDATION_ERRORS          = 'TeamsErrors';
+
+    /** @var string */
+    public const VALIDATION_SUCCESSFULLY    = 'TeamsSuccessfully';
+
     /** @var string[] */
     protected $fillable = [
         'id',

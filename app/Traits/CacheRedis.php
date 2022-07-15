@@ -74,4 +74,14 @@ trait CacheRedis
 
         return Cache::get($key);
     }
+
+    protected function getCache(string $key): ?array
+    {
+        return Cache::get($key);
+    }
+
+    protected function forget(string $key): void
+    {
+        Cache::forget($key);
+    }
 }

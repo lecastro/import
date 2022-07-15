@@ -17,7 +17,7 @@ class GenerateDocumentAwsService extends BaseServices implements GeneratingDocum
     /** @var string */
     const DISK = 'local';
 
-    /** @var file */
+    /** @var UploadedFile */
     protected $documentContent;
 
     /** @var string */
@@ -47,13 +47,6 @@ class GenerateDocumentAwsService extends BaseServices implements GeneratingDocum
     public function getPath(): string
     {
         return $this->path() . $this->fileName;
-    }
-
-    protected function mountPath(): void
-    {
-        $year = Carbon::now()->format('Y');
-
-        $this->path = "public/application/schedule/uploads/{$year}/";
     }
 
     protected function mountName(): void

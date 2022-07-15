@@ -22,4 +22,9 @@ class DateHelper
     {
         return Carbon::parse($dateTime)->format('Y-m-d H:i:s');
     }
+
+    public static function year(): string
+    {
+        return Carbon::now()->format('Y');
+    }
 }

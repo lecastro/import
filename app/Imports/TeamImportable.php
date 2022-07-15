@@ -45,107 +45,60 @@ class TeamImportable extends BaseImportable
         } catch (Throwable $th) {
             LoggerFacade::error(
                 Team::GROUP_LOGGER,
-                'Erro ao processar importação.',
-                ['error' => $th->getMessage()]
+                'Exception Clients',
+                [
+                    'messagem'  => $th->getMessage(),
+                    'exception' => $th,
+                ]
             );
-
-            throw $th;
         }
     }
 
-    /** @return array[] */
-    public function rules(): array
+    private function processTeam(Collection $team): void
     {
-        return [
-            'cnpj'                          => ['required', new Cnpj()],
-            'matricula'                     => 'required',
-            'linha'                         => 'required',
-            'matricula_gerente_de_vendas'   => 'required',
-            'matricula_gerente_de_regional' => 'required',
-        ];
-    }
-
-    /** @return array[] */
-    public function messages(): array
-    {
-        return [
-            'cnpj.required'                          => 'O campo :attribute inválido.',
-            'matricula.required'                     => 'O campo :attribute inválido.',
-            'linha.required'                         => 'O campo :attribute inválido.',
-            'matricula_gerente_de_vendas.required'   => 'O campo :attribute inválido.',
-            'matricula_gerente_de_regional.required' => 'O campo :attribute inválido.',
-        ];
-    }
-
-    private function processTeam(Collection $rows): void
-    {
-        $rows = $this->mapRows($rows);
-
-        foreach ($rows as $row) {
+        foreach ($team as $value) {
             try {
-                [
-                    $personId,
-                    $personIdSalesManager,
-                    $personIdViewManager,
-                    $place,
-                    $businessline
-                ] = $this->destructuringTeam($row);
+                $teams = $this->mountTeam($value);
 
-                $validTeam = $this->validateTeam(
-                    $personId,
-                    $personIdSalesManager,
-                    $personIdViewManager,
-                    $place,
-                    $businessline
+                $this->teamService->create($teams);
+
+                LoggerFacade::info(
+                    Team::GROUP_LOGGER,
+                    'Importacao Carteira com sucesso',
+                    [
+                        'Carteira' => $teams
+                    ]
                 );
-
-                if ($validTeam) {
-                    $team =
-                        $this->mountTeam(
-                            $personId,
-                            $personIdSalesManager,
-                            $personIdViewManager,
-                            $place,
-                            $businessline
-                        );
-
-                    $this->teamService->createInBulk($team);
-
-                    LoggerFacade::info(
-                        Team::GROUP_LOGGER,
-                        'Importação Carteira com sucesso.',
-                        ['carteira'  => $team]
-                    );
-                }
             } catch (PlaceNotFoundException $ex) {
                 LoggerFacade::error(
                     Team::GROUP_LOGGER,
-                    'PDV (place) não encontrado em importação de carteira.',
+                    'PDV (place) nao encontrado em importacao de carteira',
                     [
-                        'erro'      => $ex->getMessage(),
-                        'carteira'  => $team
+                        'message'   => $ex->getMessage(),
+                        'erro'      => $ex,
+                        'carteira'  => $teams
                     ]
                 );
-
                 continue;
             } catch (UserNotFoundException $ex) {
-                LoggerFacade::info(
+                LoggerFacade::error(
                     Team::GROUP_LOGGER,
-                    'Usuário não encontrado em importação de carteira.',
+                    'Usuario nao encontrado em importacao de carteira',
                     [
-                        'erro'      => $ex->getMessage(),
-                        'carteira'  => $team
+                        'message'   => $ex->getMessage(),
+                        'erro'      => $ex,
+                        'carteira'  => $teams
                     ]
                 );
-
                 continue;
             } catch (Exception $ex) {
-                LoggerFacade::info(
+                LoggerFacade::error(
                     Team::GROUP_LOGGER,
                     'Erro Processar Carteira.',
                     [
-                        'erro'      => $ex->getMessage(),
-                        'carteira'  => $team
+                        'message'   => $ex->getMessage(),
+                        'erro'      => $ex,
+                        'carteira'  => $teams
                     ]
                 );
             }
@@ -153,102 +106,84 @@ class TeamImportable extends BaseImportable
     }
 
     /**
-     * @param Collection
+     * @param string[]
      * @return int[]
      */
-    private function destructuringTeam($row): array
+    private function destructuringTeam(array $team): array
     {
         return [
             $this->getUserByRegistration(
-                $row->get('registration')
+                data_get($team, 'registration')
             ),
             $this->getUserByRegistration(
-                $row->get('registration_sales_manager')
+                data_get($team, 'registration_sales_manager')
             ),
             $this->getUserByRegistration(
-                $row->get('registration_view_manager')
+                data_get($team, 'registration_view_manager')
             ),
             $this->getPlaceByCnpj(
-                $row->get('cnpj')
+                data_get($team, 'cnpj')
             ),
             $this->getByBusinessLine(
-                $row->get('line')
+                data_get($team, 'line')
             ),
         ];
     }
 
-    private function validateTeam(
-        ?int $registration,
-        ?int $registrationSalesManager,
-        ?int $registrationViewManager,
-        ?int $place,
-        ?int $businessline
-    ): bool {
-        return $registration
-            && $registrationSalesManager
-            && $registrationViewManager
-            && $place
-            && $businessline;
+    /** @return array[] */
+    public function rules(): array
+    {
+        return [
+            'cnpj'                          => ['required', new Cnpj()],
+            'registration'                  => "required|string|exists:users,registration",
+            'line'                          => 'required|string|exists:mysqlSchedule.business_lines,name',
+            'registration_sales_manager'    => 'required|string|exists:users,registration',
+            'registration_view_manager'     => 'required|string|exists:users,registration',
+        ];
     }
 
-    private function mapRows(Collection $rows): Collection
+    /** @return array[] */
+    public function messages(): array
     {
-        return $rows->map(function (array $row): Collection {
-            return $this->mapRow(Collect($row));
-        });
-    }
-
-    private function mapRow(Collection $row): Collection
-    {
-        return Collect([
-            'registration'               => $this->sanitizeRegistration(
-                (string) $row->get('matricula')
-            ),
-            'registration_sales_manager' => $this->sanitizeRegistration(
-                (string) $row->get('matricula_gerente_de_vendas')
-            ),
-            'registration_view_manager'  => $this->sanitizeRegistration(
-                (string) $row->get('matricula_gerente_de_regional')
-            ),
-            'cnpj'                       => $this->sanitizeCnpj(
-                (string) $row->get('cnpj')
-            ),
-            'line'                       => StringHelper::make()->removeAccentsAndToUppercase(
-                (string) $row->get('linha')
-            ),
-        ]);
+        return [
+            'cnpj.required'                         => 'O campo :attribute inválido',
+            'registration.required'                 => 'O campo :attribute inválido',
+            'linha.required'                        => 'O campo :business_lines inválido',
+            'registration_sales_manager.required'   => 'O campo :attribute inválido',
+            'registration_view_manager.required'    => 'O campo :attribute inválido',
+        ];
     }
 
     /** @throws CacheUsersNotFoundException */
-    private function getUserByRegistration(string $registration): ?int
+    private function getUserByRegistration(string $registration): int
     {
-        $users = $this->cacheUserIds(User::KEY_CACHE);
+        $userIds = $this->cacheUserIds(User::KEY_CACHE);
 
-        if (!$users) {
+        if (!$userIds || $userIds->isEmpty()) {
             throw new CacheUsersNotFoundException();
         }
 
-        if ($users->has($registration)) {
-            return $users->get($registration);
+        if (!$userIds->has($registration)) {
+            throw new UserNotFoundException();
         }
 
-        return null;
+        return $userIds->get($registration);
     }
 
     /** @throws CachePlaceNotFoundException */
-    private function getPlaceByCnpj(string $cnpj): ?int
+    private function getPlaceByCnpj(string $cnpj): int
     {
-        $places = $this->cacheCnpj(Place::KEY_CACHE);
+        $cnpjIds = $this->cacheCnpj(Place::KEY_CACHE);
 
-        if (!$places || $places->isEmpty()) {
+        if (!$cnpjIds || $cnpjIds->isEmpty()) {
             throw new CachePlaceNotFoundException();
         }
 
-        if ($places->has($cnpj)) {
-            return $places->get($cnpj);
+        if (!$cnpjIds->has($cnpj)) {
+            throw new PlaceNotFoundException();
         }
 
-        return null;
+        return $cnpjIds->get($cnpj);
     }
 
     /**
@@ -269,7 +204,7 @@ class TeamImportable extends BaseImportable
     }
 
     /** @throws CacheBusinessLineNotFoundException */
-    private function getByBusinessLine(string $line): ?int
+    private function getByBusinessLine(string $line): int
     {
         $businesslines = $this->cacheBusinesslines(BusinessLine::KEY_CACHE);
 
@@ -280,8 +215,6 @@ class TeamImportable extends BaseImportable
         if ($businesslines->has($line)) {
             return $businesslines->get($line);
         }
-
-        return null;
     }
 
     /** @return string[] */
@@ -299,14 +232,18 @@ class TeamImportable extends BaseImportable
 
     /** @return string[] */
     private function mountTeam(
-        int $personId,
-        int $personIdSalesManager,
-        int $personIdViewManager,
-        int $place,
-        int $businessline
+        array $team
     ): array {
 
-        [$viewId, $subViewId] = $this->getViewsAndSubViewsByPerson($personId);
+        list(
+            $personId,
+            $personIdSalesManager,
+            $personIdViewManager,
+            $place,
+            $businessline
+        ) = $this->destructuringTeam($team);
+
+        list($viewId, $subViewId) = $this->getViewsAndSubViewsByPerson($personId);
 
         return [
             'people_id'         => $personId,
@@ -315,9 +252,7 @@ class TeamImportable extends BaseImportable
             'place_id'          => $place,
             'business_line_id'  => $businessline,
             'view_id'           => $viewId,
-            'sub_view_id'       => $subViewId,
-            'created_at'        => Carbon::now(),
-            'updated_at'        => Carbon::now(),
+            'sub_view_id'       => $subViewId
         ];
     }
 }

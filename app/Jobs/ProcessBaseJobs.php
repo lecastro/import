@@ -22,21 +22,6 @@ abstract class ProcessBaseJobs
     /** @var string */
     private const FILENAME = 'filename';
 
-    protected function makeBodyRequest(): Request
-    {
-        $request = new Request();
-
-        $request->files->set(
-            self::FILENAME,
-            (new UploadedFileFactory())->make(
-                $this->upload->path_temporary,
-                $this->upload->title
-            )
-        );
-
-        return $request;
-    }
-
     protected function process(): void
     {
         $this->upload->update([

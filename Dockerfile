@@ -9,7 +9,12 @@ RUN chmod -R 755 /var/www/html/*
 RUN chmod -R 755 /var/www/html/.env
 RUN chmod -R 777 /var/www/html/storage/
 
+# Add user for laravel application
+RUN groupadd -g 1000 www
+RUN useradd -u 1000 -ms /bin/sh -g www www
+COPY --chown=www:www . /var/www/html
+
 RUN printenv
-# RUN composer install
+USER www
 
 CMD ["php-fpm"]

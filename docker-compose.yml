@@ -65,11 +65,11 @@ services:
     image: rabbitmq:3-management-alpine
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
-      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
+      - RABBITMQ_DEFAULT_PASSWORD=${RABBITMQ_PASSWORD}
     volumes:
-      - rmqdataapp/:/var/lib/rabbitmq
+      - rmqdata/:/var/lib/rabbitmq
     ports:
-      - "5672:5672"
+      - ${RABBITMQ_PORT}:5672
       - "15672:15672"
     networks:
       - app_default
@@ -90,7 +90,8 @@ services:
 
 volumes:
   database:
-  rmqdataapp:
+  rmqdata:
+    name: rabbitmq_b2b_import
   cache:
   esdata:
     driver: local

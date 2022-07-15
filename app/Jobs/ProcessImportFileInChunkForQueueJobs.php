@@ -42,10 +42,10 @@ class ProcessImportFileInChunkForQueueJobs implements ShouldQueue
     {
         LoggerFacade::error(
             Team::GROUP_LOGGER,
-            'Falha ao processar Jobs de importação Teams em linha',
+            'Falha ao processar Arquivo teams em linha',
             [
-                'message'   => $exception->getMessage(),
-                'exception' => $exception
+                'mensagem'  => $exception->getMessage(),
+                'erro'      => $exception
             ]
         );
     }

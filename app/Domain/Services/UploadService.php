@@ -11,21 +11,11 @@ use Illuminate\Http\UploadedFile;
 use App\Jobs\ProcessUploadTeamsJobs;
 use App\Domain\Services\BaseServices;
 use App\Domain\Components\Queue\NameQueue;
-use App\Http\Requests\Uploads\UploadFileRequest;
 use App\Domain\Services\GenerateDocumentAwsService;
 use App\Domain\Repositories\Eloquent\UploadHistoryRepository;
 
 class UploadService extends BaseServices
 {
-    /** @var string */
-    protected const MODULE = 'schedule';
-
-    /** @var string*/
-    private const DISK = 's3';
-
-    /** @var string*/
-    private const DISK_LOCAL = 'local';
-
     protected GenerateDocumentAwsService $generateDocument;
 
     protected UploadHistoryRepository $uploadHistoryRepository;
@@ -43,8 +33,7 @@ class UploadService extends BaseServices
         $file     = $request->file('filename');
 
         $pathTemp = $this->generateDocument($file, self::DISK_LOCAL);
-        //$pathS3   = $this->generateDocument($file, self::DISK);
-        $pathS3   = $pathTemp;
+        $pathS3   = $this->generateDocument($file, self::DISK);
 
         $upload = $this->mountUpload(
             $this->formatFileName('Carteiras'),

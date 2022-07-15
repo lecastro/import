@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Events\DispatchExportableEvent;
 use App\Events\InjectAllCnpjInCacheEvent;
 use App\Events\InjectAllUserIdsInCacheEvent;
+use App\Listeners\DispatchExportableListener;
 use App\Listeners\InjectAllCnpjInCacheListener;
 use App\Events\InjectAllBusinesslinesInCacheEvent;
 use App\Listeners\InjectAllUserIdsInCacheListener;
@@ -16,11 +18,6 @@ use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvi
 
 class EventServiceProvider extends ServiceProvider
 {
-    /**
-     * The event listener mappings for the application.
-     *
-     * @var array[]
-     */
     protected $listen = [
         InjectAllUserIdsInCacheEvent::class => [
             InjectAllUserIdsInCacheListener::class,
@@ -33,6 +30,9 @@ class EventServiceProvider extends ServiceProvider
         ],
         InjectAllBusinesslinesInCacheEvent::class => [
             InjectAllBusinesslinesInCacheListener::class,
+        ],
+        DispatchExportableEvent::class => [
+            DispatchExportableListener::class,
         ]
     ];
 }
