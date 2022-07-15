@@ -9,7 +9,6 @@ use App\Models\UploadHistory;
 use App\Imports\TeamImportable;
 use App\Domain\Services\BaseServices;
 use Illuminate\Support\LazyCollection;
-use App\Jobs\ProcessDeleteAllTeamsJobs;
 use App\Domain\Components\Queue\NameQueue;
 use App\Domain\Components\Adapters\TeamAdapter;
 use App\Domain\Components\Facades\LoggerFacade;
@@ -22,12 +21,9 @@ class ImportTeamService extends BaseServices
 
     protected DeletedRecordHistoryService $deletedRecordHistoryService;
 
-    public function __construct(
-        TeamImportable $teamImportable,
-        DeletedRecordHistoryService $deletedRecordHistoryService
-    ) {
-        $this->teamImportable               = $teamImportable;
-        $this->deletedRecordHistoryService  = $deletedRecordHistoryService;
+    public function __construct(TeamImportable $teamImportable)
+    {
+        $this->teamImportable = $teamImportable;
     }
 
     public function team(UploadHistory $uploadHistory): void
@@ -45,8 +41,6 @@ class ImportTeamService extends BaseServices
                     $this->dispatchProcessImportFileInChunk($team);
                 }
             });
-
-        //$this->dispatchDeletionOfTeams();
 
         LoggerFacade::info(
             Team::GROUP_LOGGER,
@@ -71,8 +65,7 @@ class ImportTeamService extends BaseServices
     private function dispatchProcessImportFileInChunk(array $team): void
     {
         ProcessImportFileInChunkForQueueJobs::dispatch(
-            $team,
-            $this->teamImportable
+            $team
         )->onQueue(
             NameQueue::PROCESS_IMPORT_FILE_IN_CHUNCK
         );
@@ -84,16 +77,5 @@ class ImportTeamService extends BaseServices
                 'despachando carteira fila' => $team
             ]
         );
-    }
-
-    public function dispatchDeletionOfTeams(): void
-    {
-        ProcessDeleteAllTeamsJobs::dispatch(
-            $this->teamImportable,
-            $this->deletedRecordHistoryService
-        )
-            ->onQueue(
-                NameQueue::PROCESS_DELETE_TEAMS_THAT_WHERE_NOT_CREATED_MANUALLY
-            );
     }
 }

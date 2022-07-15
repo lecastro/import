@@ -1,7 +1,7 @@
 FROM nginx:1.13.3
 
-COPY ./Docker/conf/nginx/sites/default.conf /etc/nginx/conf.d/
-COPY ./Docker/conf/nginx/nginx.conf /etc/nginx/
+COPY ./Docker/development/conf/nginx/sites/default.conf /etc/nginx/conf.d/
+COPY ./Docker/development/conf/nginx/nginx.conf /etc/nginx/
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \

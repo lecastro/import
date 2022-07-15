@@ -16,8 +16,8 @@ class TeamService extends BaseServices
     }
 
     /** @param string[] */
-    public function create(array $teams): void
+    public function updateOrCreate(array $teams): void
     {
-        $this->teamRepository->create($teams);
+        $this->teamRepository->updateOrCreate($teams, $teams);
     }
 }

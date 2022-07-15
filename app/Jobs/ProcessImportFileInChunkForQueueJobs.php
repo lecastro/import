@@ -23,17 +23,16 @@ class ProcessImportFileInChunkForQueueJobs implements ShouldQueue
 
     protected array $team;
 
-    protected TeamImportable $teamImportable;
-
-    public function __construct(array $team, TeamImportable $teamImportable)
+    public function __construct(array $team)
     {
-        $this->team             = $team;
-        $this->teamImportable   = $teamImportable;
+        $this->team = $team;
     }
 
     public function handle(): void
     {
-        $this->teamImportable->importProcessInRow(
+        $importable = resolve(TeamImportable::class);
+
+        $importable->importProcessInRow(
             $this->team
         );
     }

@@ -7,9 +7,11 @@ namespace app\Domain\Services;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\UploadHistory;
+use App\Jobs\StartCacheTeamsJobs;
 use Illuminate\Http\UploadedFile;
 use App\Jobs\ProcessUploadTeamsJobs;
 use App\Domain\Services\BaseServices;
+use App\Exceptions\CsvNotFoundException;
 use App\Domain\Components\Queue\NameQueue;
 use App\Domain\Services\GenerateDocumentAwsService;
 use App\Domain\Repositories\Eloquent\UploadHistoryRepository;
@@ -20,10 +22,8 @@ class UploadService extends BaseServices
 
     protected UploadHistoryRepository $uploadHistoryRepository;
 
-    public function __construct(
-        GenerateDocumentAwsService $generateDocument,
-        UploadHistoryRepository $uploadHistoryRepository
-    ) {
+    public function __construct(GenerateDocumentAwsService $generateDocument, UploadHistoryRepository $uploadHistoryRepository)
+    {
         $this->generateDocument         = $generateDocument;
         $this->uploadHistoryRepository  = $uploadHistoryRepository;
     }
@@ -45,12 +45,16 @@ class UploadService extends BaseServices
 
         $payload = $this->uploadHistoryRepository->create($upload);
 
+        StartCacheTeamsJobs::dispatch()
+            ->onQueue(
+                NameQueue::PROCESS_START_CACHE
+            );
+
         ProcessUploadTeamsJobs::dispatch(
             $payload
-        )
-            ->onQueue(
-                NameQueue::PROCESS_IMPORT_TEAMS
-            );
+        )->onQueue(
+            NameQueue::PROCESS_IMPORT_TEAMS
+        );
     }
 
     protected function generateDocument(UploadedFile $document, string $disk): string
@@ -82,7 +86,7 @@ class UploadService extends BaseServices
         return storage_path("app/{$path}");
     }
 
-    public function formatFileName(string $fileName, $isValid = true): string
+    public function formatFileName(string $fileName, bool $isValid = true): string
     {
         if ($isValid) {
             return $fileName . ' - ' . Carbon::now()->format('d/m/Y');

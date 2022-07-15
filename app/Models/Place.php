@@ -17,6 +17,9 @@ class Place extends Model
 
     public const KEY_CACHE = 'cnpj';
 
+    /** @var int */
+    public const TIME_CACHE = 28800;
+
     protected $connection = 'mysql';
 
     protected $fillable = [

@@ -1,12 +1,14 @@
 version: '3.7'
+
 services:
   nginx:
     restart: always
-    hostname: nginx
-    image: web-app
+    hostname: "${APP_NAME}_nginx"
+    image: "${APP_NAME}_nginx"
+    container_name: "${APP_NAME}_nginx"
     build:
       context: .
-      dockerfile: ./Docker/Dockerfile
+      dockerfile: ./Docker/development/Dockerfile-nginx
     volumes:
       - ${APPLICATION}:/var/www/html
       - ${NGINX_HOST_LOG_PATH}:/var/log/nginx
@@ -16,12 +18,13 @@ services:
     links:
       - app
     networks:
-      - app_default
+      - app_network
 
   app:
     restart: always
-    hostname: app
-    image: app
+    hostname: "${APP_NAME}_app"
+    image: "${APP_NAME}_php"
+    container_name: "${APP_NAME}_app"
     build:
       context: .
       dockerfile: Dockerfile
@@ -33,52 +36,80 @@ services:
       - ${APPLICATION}:/var/www/html
     environment:
       - COMPOSER_MEMORY_LIMIT=-1
+      - PHP_IDE_CONFIG="serverName=Localhost"
+      - XDEBUG_CONFIG="client_host=localhost remote_host=host.docker.internal log=/tmp/xdebug.log"
     links:
-      - mysql
       - rabbitmq
     depends_on:
       - rabbitmq
     networks:
-      - app_default
+      - app_network
 
-  mysql:
-    restart: always
-    hostname: mysql
-    image: mysql:8.0.19
-    command: --default-authentication-plugin=mysql_native_password
+  elasticsearch:
+    hostname: "${APP_NAME}_elasticsearch"
+    image: "${APP_NAME}_elasticsearch"
+    container_name: "${APP_NAME}_elasticsearch"
+    build:
+      context: .
+      dockerfile: ./Docker/development/Dockerfile-elasticsearch
     ports:
-      - ${DB_PORT}:3306
-    volumes:
-      - database:/var/lib/mysql
+      - ${ELASTIC_HTTP}:9200
+      - ${ELASTIC_HTTPS}:9300
     environment:
-      - MYSQL_DATABASE=${DB_DATABASE}
-      - MYSQL_USER=${DB_USERNAME}
-      - MYSQL_PASSWORD=${DB_PASSWORD}
-      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      discovery.type: "single-node"
+      ES_JAVA_OPTS: "-Xms2g -Xmx2g"
+      xpack.security.enabled: "false"
+      xpack.monitoring.templates.enabled: "true"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
     networks:
-      app_default:
-        aliases:
-          - mysql
+      - app_network
+
+  kibana:
+    hostname: "${APP_NAME}_kibana"
+    image: "${APP_NAME}_kibana"
+    container_name: "${APP_NAME}_kibana"
+    build:
+      context: .
+      dockerfile: ./Docker/development/Dockerfile-kibana
+    ports:
+      - ${KIBANA_PORT}:5601
+    environment:
+      ELASTICSEARCH_URL: ${ELASTIC_HOST}
+    depends_on:
+      - elasticsearch
+    links:
+      - elasticsearch
+    networks:
+      - app_network
 
   rabbitmq:
-    hostname: rabbitmq
-    image: rabbitmq:3-management-alpine
+    hostname: "${APP_NAME}_rabbitmq"
+    image: "${APP_NAME}_app_rabbitmq"
+    container_name: "${APP_NAME}_rabbitmq"
+    build:
+      context: .
+      dockerfile: ./Docker/development/Dockerfile-rabbitmq
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
-      - RABBITMQ_DEFAULT_PASSWORD=${RABBITMQ_PASSWORD}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
     volumes:
       - rmqdata/:/var/lib/rabbitmq
     ports:
       - ${RABBITMQ_PORT}:5672
-      - "15672:15672"
+      - ${RABBITMQ_PORT_HTTPS}:15672
     networks:
-      - app_default
+      - app_network
 
   redis:
-    image: redis:alpine3.15
+    hostname: "${APP_NAME}_redis"
+    image: "${APP_NAME}_redis"
+    container_name: "${APP_NAME}_redis"
+    build:
+      context: .
+      dockerfile: ./Docker/development/Dockerfile-redis
     ports:
-      - "6379:6379"
-    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
+      - ${REDIS_PORT}:6379
     volumes:
       - cache:/data
     depends_on:
@@ -86,17 +117,18 @@ services:
     links:
       - app
     networks:
-      - app_default
+      - app_network
 
 volumes:
-  database:
   rmqdata:
-    name: rabbitmq_b2b_import
+    name: ${APP_NAME}_rmq_vol
   cache:
+    name: ${APP_NAME}_cache_vol
   esdata:
+    name: ${APP_NAME}_es_vol
     driver: local
 
 networks:
-  app_default:
+  app_network:
     driver: bridge
-    name: ${NETWORK_NAME}
+    name: ${APP_NAME}_network

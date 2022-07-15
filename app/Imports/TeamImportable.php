@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Imports;
 
-use Carbon\Carbon;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\View;
@@ -13,9 +12,7 @@ use App\Models\BusinessLine;
 use App\Imports\BaseImportable;
 use Illuminate\Support\Collection;
 use App\Domain\Services\TeamService;
-use App\Domain\Components\Rules\Cnpj;
 use App\Domain\Components\Facades\LoggerFacade;
-use App\Domain\Components\Helpers\StringHelper;
 use App\Exceptions\CachePlaceNotFoundException;
 use App\Exceptions\CacheUsersNotFoundException;
 use App\Exceptions\CacheViewsNotFoundException;
@@ -41,7 +38,10 @@ class TeamImportable extends BaseImportable
         $validatedRows = $this->validateRow($team);
 
         try {
-            $this->processTeam(collect($validatedRows));
+            if (!empty($validatedRows)) {
+                $this->processTeam(collect($validatedRows));
+                $this->generateCacheRowsSuccessfully($validatedRows);
+            }
         } catch (Throwable $th) {
             LoggerFacade::error(
                 Team::GROUP_LOGGER,
@@ -60,7 +60,7 @@ class TeamImportable extends BaseImportable
             try {
                 $teams = $this->mountTeam($value);
 
-                $this->teamService->create($teams);
+                $this->teamService->updateOrCreate($teams);
 
                 LoggerFacade::info(
                     Team::GROUP_LOGGER,
@@ -105,6 +105,30 @@ class TeamImportable extends BaseImportable
         }
     }
 
+
+    private function mountTeam(array $team): array
+    {
+        list(
+            $personId,
+            $personIdSalesManager,
+            $personIdViewManager,
+            $place,
+            $businessline
+        ) = $this->destructuringTeam($team);
+
+        list($viewId, $subViewId) = $this->getViewsAndSubViewsByPerson($personId);
+
+        return [
+            'people_id'         => $personId,
+            'manager_id'        => $personIdSalesManager,
+            'view_manager_id'   => $personIdViewManager,
+            'place_id'          => $place,
+            'business_line_id'  => $businessline,
+            'view_id'           => $viewId,
+            'sub_view_id'       => $subViewId
+        ];
+    }
+
     /**
      * @param string[]
      * @return int[]
@@ -130,48 +154,24 @@ class TeamImportable extends BaseImportable
         ];
     }
 
-    /** @return array[] */
-    public function rules(): array
-    {
-        return [
-            'cnpj'                          => ['required', new Cnpj()],
-            'registration'                  => "required|string|exists:users,registration",
-            'line'                          => 'required|string|exists:mysqlSchedule.business_lines,name',
-            'registration_sales_manager'    => 'required|string|exists:users,registration',
-            'registration_view_manager'     => 'required|string|exists:users,registration',
-        ];
-    }
-
-    /** @return array[] */
-    public function messages(): array
-    {
-        return [
-            'cnpj.required'                         => 'O campo :attribute inválido',
-            'registration.required'                 => 'O campo :attribute inválido',
-            'linha.required'                        => 'O campo :business_lines inválido',
-            'registration_sales_manager.required'   => 'O campo :attribute inválido',
-            'registration_view_manager.required'    => 'O campo :attribute inválido',
-        ];
-    }
-
     /** @throws CacheUsersNotFoundException */
-    private function getUserByRegistration(string $registration): int
+    private function getUserByRegistration(string $registration): ?int
     {
         $userIds = $this->cacheUserIds(User::KEY_CACHE);
 
-        if (!$userIds || $userIds->isEmpty()) {
+        if (!$userIds) {
             throw new CacheUsersNotFoundException();
         }
 
-        if (!$userIds->has($registration)) {
-            throw new UserNotFoundException();
+        if ($userIds->has($registration)) {
+            return $userIds->get($registration);
         }
 
-        return $userIds->get($registration);
+        return null;
     }
 
     /** @throws CachePlaceNotFoundException */
-    private function getPlaceByCnpj(string $cnpj): int
+    private function getPlaceByCnpj(string $cnpj): ?int
     {
         $cnpjIds = $this->cacheCnpj(Place::KEY_CACHE);
 
@@ -179,11 +179,11 @@ class TeamImportable extends BaseImportable
             throw new CachePlaceNotFoundException();
         }
 
-        if (!$cnpjIds->has($cnpj)) {
-            throw new PlaceNotFoundException();
+        if ($cnpjIds->has($cnpj)) {
+            return $cnpjIds->get($cnpj);
         }
 
-        return $cnpjIds->get($cnpj);
+        return null;
     }
 
     /**
@@ -204,7 +204,7 @@ class TeamImportable extends BaseImportable
     }
 
     /** @throws CacheBusinessLineNotFoundException */
-    private function getByBusinessLine(string $line): int
+    private function getByBusinessLine(string $line): ?int
     {
         $businesslines = $this->cacheBusinesslines(BusinessLine::KEY_CACHE);
 
@@ -215,6 +215,8 @@ class TeamImportable extends BaseImportable
         if ($businesslines->has($line)) {
             return $businesslines->get($line);
         }
+
+        return null;
     }
 
     /** @return string[] */
@@ -228,31 +230,5 @@ class TeamImportable extends BaseImportable
                 data_get($viewsWithSubViews, 'sub_view_id'),
             ];
         }
-    }
-
-    /** @return string[] */
-    private function mountTeam(
-        array $team
-    ): array {
-
-        list(
-            $personId,
-            $personIdSalesManager,
-            $personIdViewManager,
-            $place,
-            $businessline
-        ) = $this->destructuringTeam($team);
-
-        list($viewId, $subViewId) = $this->getViewsAndSubViewsByPerson($personId);
-
-        return [
-            'people_id'         => $personId,
-            'manager_id'        => $personIdSalesManager,
-            'view_manager_id'   => $personIdViewManager,
-            'place_id'          => $place,
-            'business_line_id'  => $businessline,
-            'view_id'           => $viewId,
-            'sub_view_id'       => $subViewId
-        ];
     }
 }

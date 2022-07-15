@@ -28,6 +28,10 @@ class PlaceService extends BaseServices
             $data[(string) $place->cnpj] = $place->id;
         }
 
-        Cache::forever(Place::KEY_CACHE, collect($data));
+        Cache::put(
+            Place::KEY_CACHE,
+            collect($data),
+            Place::TIME_CACHE
+        );
     }
 }

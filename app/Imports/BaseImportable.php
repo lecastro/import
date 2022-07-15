@@ -6,6 +6,7 @@ namespace App\Imports;
 
 use App\Models\Team;
 use App\Traits\CacheRedis;
+use App\Domain\Components\Rules\Cnpj;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use App\Domain\Components\Facades\LoggerFacade;
@@ -14,12 +15,6 @@ use App\Domain\Components\Facades\CacheExportableFacade;
 abstract class BaseImportable
 {
     use CacheRedis;
-
-    /** @return string[] */
-    abstract public function rules(): array;
-
-    /** @return string[] */
-    abstract public function messages(): array;
 
     /**
      * @return array[]
@@ -95,5 +90,29 @@ abstract class BaseImportable
     protected function errors(array $errors, int $key): array
     {
         return [$errors[$key] = $errors];
+    }
+
+    /** @return array[] */
+    public function rules(): array
+    {
+        return [
+            'cnpj'                          => ['required', new Cnpj()],
+            'registration'                  => "required|string|exists:users,registration",
+            'line'                          => 'required|string|exists:mysqlSchedule.business_lines,name',
+            'registration_sales_manager'    => 'required|string|exists:users,registration',
+            'registration_view_manager'     => 'required|string|exists:users,registration',
+        ];
+    }
+
+    /** @return array[] */
+    public function messages(): array
+    {
+        return [
+            'cnpj.required'                         => 'O campo :attribute inválido',
+            'registration.required'                 => 'O campo :attribute inválido',
+            'linha.required'                        => 'O campo :business_lines inválido',
+            'registration_sales_manager.required'   => 'O campo :attribute inválido',
+            'registration_view_manager.required'    => 'O campo :attribute inválido',
+        ];
     }
 }

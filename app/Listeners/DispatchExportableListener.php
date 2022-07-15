@@ -42,6 +42,7 @@ class DispatchExportableListener
             $this->clearCache($errors, $succefully);
         } catch (\Throwable $th) {
             throw $th;
+            $this->clearCache($errors, $succefully);
         }
     }
 

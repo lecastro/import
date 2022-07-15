@@ -17,7 +17,7 @@ class View extends Model
     public const KEY_CACHE = 'viewsIds';
 
     /** @var int */
-    public const TIME_CACHE = 86400;
+    public const TIME_CACHE = 28800;
 
     /** @var string */
     protected $connection = 'mysql';

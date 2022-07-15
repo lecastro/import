@@ -16,16 +16,16 @@ class Team extends Model
     protected $connection = 'mysqlSchedule';
 
     /** @var int */
-    public const DATETIME_PROCESS_CACHE = 86400;
+    public const DATETIME_PROCESS_CACHE = 28800;
 
     /** @var string */
     public const GROUP_LOGGER = 'Importação Carteira';
 
     /** @var string */
-    public const VALIDATION_ERRORS          = 'TeamsErrors';
+    public const VALIDATION_ERRORS = 'TeamsErrors';
 
     /** @var string */
-    public const VALIDATION_SUCCESSFULLY    = 'TeamsSuccessfully';
+    public const VALIDATION_SUCCESSFULLY = 'TeamsSuccessfully';
 
     /** @var string[] */
     protected $fillable = [

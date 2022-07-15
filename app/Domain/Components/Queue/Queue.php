@@ -16,7 +16,7 @@ class Queue
     {
         QueueFacede::after(
             function (JobProcessed $event): void {
-                if ($this->isTypeJob($event)) {
+                if ($this->isSync($event) && $this->isTypeJob($event)) {
                     if ($this->size() === 0) {
                         Event::dispatch(
                             new DispatchExportableEvent($event)
@@ -35,5 +35,10 @@ class Queue
     private function size(): int
     {
         return QueueFacede::size(NameQueue::PROCESS_IMPORT_FILE_IN_CHUNCK);
+    }
+
+    private function isSync(JobProcessed $event): bool
+    {
+        return $event->connectionName !== 'sync';
     }
 }

@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class User extends Model
 {
     /** @var int */
-    public const TIME_CACHE = 86400;
+    public const TIME_CACHE = 28800;
 
     /** @var string */
     public const KEY_CACHE =  'ids';

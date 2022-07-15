@@ -12,7 +12,7 @@ class BusinessLine extends Model
     public const KEY_CACHE = 'businesslineIds';
 
     /** @var int */
-    public const TIME_CACHE = 86400;
+    public const TIME_CACHE = 28800;
 
     protected $connection = 'mysqlSchedule';
 
